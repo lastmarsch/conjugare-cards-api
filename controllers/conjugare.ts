@@ -23,16 +23,15 @@ conjugareRouter.get('/:verb', (req, res) => {
       const { data } = response;
       const conjugare = conjugareTransformer(data);
 
-      if (Object.keys(conjugare).length === 0) {
-        throw new ServerError({ status: 404, message: 'Not found!' });
-      }
-
       res.json(conjugare);
     })
     .catch((e) => {
       const isServerError = e instanceof ServerError;
       if (!isServerError) {
-        e = new ServerError({ status: e.response.status, message: e.response.statusText });
+        e = new ServerError({
+          status: e.response.status,
+          message: e.response.statusText,
+        });
       }
       res.status(e.status).send(e.message);
     });

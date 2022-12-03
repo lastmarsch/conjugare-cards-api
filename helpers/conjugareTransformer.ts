@@ -1,4 +1,5 @@
 import HTMLParser from 'node-html-parser';
+import { ServerError } from './Error';
 
 interface Conjugare {
   verb: string;
@@ -37,7 +38,7 @@ export const conjugareTransformer = (html: string) => {
     maiMultCaPerfect: [],
   };
 
-  const root = HTMLParser.parse(html, {
+  const paradigms = HTMLParser.parse(html, {
     lowerCaseTagName: true,
     comment: false,
     blockTextElements: {
@@ -46,13 +47,17 @@ export const conjugareTransformer = (html: string) => {
       style: false,
       pre: false,
     },
-  }).querySelector('html body');
+  }).querySelectorAll('.paraLexeme');
 
-  const paradigms = root?.querySelectorAll('.paradigmDiv .paraLexeme') || [];
+  if (!paradigms) {
+    throw new ServerError({ status: 404, message: 'Verb card not found' });
+  }
 
   for (const paradigm of paradigms) {
     const tags = paradigm.querySelectorAll('.tag');
-    if (tags[0].innerText !== 'verb') continue;
+    if (tags[0].innerText !== 'verb') {
+      continue;
+    }
 
     conjugareObject.grupa = tags[1].innerText || '';
     conjugareObject.conjugarea = tags[2].innerText || '';
@@ -60,13 +65,18 @@ export const conjugareTransformer = (html: string) => {
     const tableRows = paradigm.querySelectorAll('tr');
 
     const headerCells = tableRows[1].querySelectorAll('td ul');
-    conjugareObject.verb = `a ${headerCells[0]?.querySelector('li')?.innerText}` || '';
-    conjugareObject.infinitivLung = headerCells[1]?.querySelector('li')?.innerHTML || '';
-    conjugareObject.participiu = headerCells[2]?.querySelector('li')?.innerHTML || '';
-    conjugareObject.gerunziu = headerCells[3]?.querySelector('li')?.innerHTML || '';
+    conjugareObject.verb =
+      `a ${headerCells[0]?.querySelector('li')?.innerText}` || '';
+    conjugareObject.infinitivLung =
+      headerCells[1]?.querySelector('li')?.innerHTML || '';
+    conjugareObject.participiu =
+      headerCells[2]?.querySelector('li')?.innerHTML || '';
+    conjugareObject.gerunziu =
+      headerCells[3]?.querySelector('li')?.innerHTML || '';
 
     const imperativCells = tableRows[2].querySelectorAll('td ul');
-    conjugareObject.imperativ.sg = imperativCells[0].querySelector('li')?.innerHTML || '';
+    conjugareObject.imperativ.sg =
+      imperativCells[0].querySelector('li')?.innerHTML || '';
     conjugareObject.imperativ.pl = imperativCells[1]
       .querySelectorAll('li')
       ?.map((word) => word.innerHTML || '')
@@ -93,5 +103,5 @@ export const conjugareTransformer = (html: string) => {
     return conjugareObject;
   }
 
-  return {};
+  throw new ServerError({ status: 404, message: 'Verb not found' });
 };
